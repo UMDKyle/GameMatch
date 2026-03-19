@@ -2,10 +2,12 @@ export interface Game {
   id: string;
   name: string;
   description: string;
-  /** Placeholder image path or URL. Real images can be swapped in later. */
+  /** High-quality cover image URL (from IGDB t_cover_big). */
   image: string;
   tags: string[];
   genres?: string[];
+  /** Link to the game's page on IGDB. */
+  igdbUrl?: string;
 }
 
 /**

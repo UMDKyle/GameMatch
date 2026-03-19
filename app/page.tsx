@@ -10,11 +10,10 @@ import { ExamplePrompt, RecommendApiResponse, RecommendationResult } from "@/app
 import { extractTagNames } from "@/lib/extractTags";
 
 const EXAMPLE_PROMPTS: ExamplePrompt[] = [
-  { id: "1", text: "I want a difficult samurai game" },
-  { id: "2", text: "I want a relaxing farming game" },
-  { id: "3", text: "I want a co-op horror game" },
-  { id: "4", text: "I want an open world RPG with a great story" },
-  { id: "5", text: "I want a fast-paced sci-fi shooter" },
+  { id: "1", text: "I want a relaxing farming game" },
+  { id: "2", text: "I want a co-op horror game" },
+  { id: "3", text: "I want an open world RPG with a great story" },
+  { id: "4", text: "I want a fast-paced sci-fi shooter" },
 ];
 
 // idle     → nothing submitted yet
