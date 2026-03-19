@@ -35,8 +35,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# generated data files (produced by fetchGames.js — commit manually after review)
-data/games.json
 
 # local dev scripts (contain API fetch logic, not needed in repo)
 fetchGames.js
