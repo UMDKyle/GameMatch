@@ -18,30 +18,33 @@ const EXAMPLE_PROMPTS: ExamplePrompt[] = [
 
 // idle     → nothing submitted yet
 // loading  → waiting for API
-// no-tags  → submitted but no tags detected (skipped API)
+// no-tags  → API returned but extracted zero tags (local + AI both found nothing)
 // done     → API returned (results may be empty)
 // error    → API call failed
 type ResultStatus = "idle" | "loading" | "no-tags" | "done" | "error";
+
+const PAGE_SIZE = 5;
+const MAX_PAGES = 10;
 
 export default function Home() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<ResultStatus>("idle");
   const [results, setResults] = useState<RecommendationResult[]>([]);
+  // Tags actually used for scoring — may differ from local preview when AI is on.
+  const [apiDetectedTags, setApiDetectedTags] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Detected tags are always client-side — instant, no API call.
+  // Client-side preview only — shown while typing, never used for scoring.
   const detectedTags = useMemo(() => extractTagNames(query), [query]);
 
   const handleSubmit = async () => {
     const trimmed = query.trim();
     if (!trimmed) return;
 
-    if (detectedTags.length === 0) {
-      setStatus("no-tags");
-      setResults([]);
-      return;
-    }
-
+    // Always send to the API — the backend decides tags (local or AI).
+    // We no longer gate on client-side detectedTags so that queries like
+    // "zombies" can still reach the OpenAI extractor when it's enabled.
     setStatus("loading");
     setErrorMessage(null);
 
@@ -58,8 +61,14 @@ export default function Home() {
       }
 
       const data = await res.json() as RecommendApiResponse;
+
+      // Store the tags the backend actually used (may be AI-extracted).
+      setApiDetectedTags(data.detectedTags);
       setResults(data.recommendations);
-      setStatus("done");
+      setCurrentPage(1);
+
+      // If the backend found no tags at all, show the no-tags state.
+      setStatus(data.detectedTags.length === 0 ? "no-tags" : "done");
     } catch (err) {
       setErrorMessage(
         err instanceof Error ? err.message : "Something went wrong."
@@ -71,20 +80,30 @@ export default function Home() {
   const handleClear = () => {
     setQuery("");
     setResults([]);
+    setApiDetectedTags([]);
     setStatus("idle");
     setErrorMessage(null);
+    setCurrentPage(1);
   };
 
   const handleExampleSelect = (text: string) => {
     setQuery(text);
-    // Reset result state so the user sees the prompt filled in cleanly,
-    // ready to submit — not stale results from a previous query.
     setStatus("idle");
     setResults([]);
+    setApiDetectedTags([]);
+    setCurrentPage(1);
   };
 
   const hasInput = query.trim().length > 0;
   const isLoading = status === "loading";
+
+  // Pagination derived values
+  const cappedResults = results.slice(0, MAX_PAGES * PAGE_SIZE);
+  const totalPages = Math.ceil(cappedResults.length / PAGE_SIZE);
+  const pagedResults = cappedResults.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -166,19 +185,27 @@ export default function Home() {
           {status === "done" && results.length > 0 && (
             <>
               <ResultsSummary
-                count={results.length}
-                detectedTags={detectedTags}
-                onClear={handleClear}
+                total={cappedResults.length}
+                page={currentPage}
+                pageSize={PAGE_SIZE}
+                detectedTags={apiDetectedTags}
               />
               <div className="flex flex-col gap-4">
-                {results.map((result, index) => (
+                {pagedResults.map((result, index) => (
                   <RecommendationCard
                     key={result.game.id}
                     result={result}
-                    rank={index + 1}
+                    rank={(currentPage - 1) * PAGE_SIZE + index + 1}
                   />
                 ))}
               </div>
+              {totalPages > 1 && (
+                <Pagination
+                  current={currentPage}
+                  total={totalPages}
+                  onChange={setCurrentPage}
+                />
+              )}
             </>
           )}
         </section>
@@ -295,6 +322,57 @@ function ErrorState({
         className="mt-4 rounded-lg border border-red-200 bg-white px-4 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors duration-150"
       >
         Try again
+      </button>
+    </div>
+  );
+}
+
+function Pagination({
+  current,
+  total,
+  onChange,
+}: {
+  current: number;
+  total: number;
+  onChange: (page: number) => void;
+}) {
+  return (
+    <div className="mt-6 flex items-center justify-center gap-1">
+      {/* Prev */}
+      <button
+        onClick={() => onChange(current - 1)}
+        disabled={current === 1}
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-sm text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 disabled:pointer-events-none disabled:opacity-30 transition-colors duration-150"
+        aria-label="Previous page"
+      >
+        ‹
+      </button>
+
+      {/* Page numbers */}
+      {Array.from({ length: total }, (_, i) => i + 1).map((page) => (
+        <button
+          key={page}
+          onClick={() => onChange(page)}
+          className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition-colors duration-150 ${
+            page === current
+              ? "bg-zinc-900 text-white"
+              : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+          }`}
+          aria-label={`Page ${page}`}
+          aria-current={page === current ? "page" : undefined}
+        >
+          {page}
+        </button>
+      ))}
+
+      {/* Next */}
+      <button
+        onClick={() => onChange(current + 1)}
+        disabled={current === total}
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-sm text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 disabled:pointer-events-none disabled:opacity-30 transition-colors duration-150"
+        aria-label="Next page"
+      >
+        ›
       </button>
     </div>
   );

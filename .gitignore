@@ -36,5 +36,7 @@ yarn-error.log*
 next-env.d.ts
 
 
-# local dev scripts (contain API fetch logic, not needed in repo)
+# local dev scripts (not needed in repo)
 fetchGames.js
+tagGames.js
+data/games.tagging-progress.json

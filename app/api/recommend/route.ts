@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractTags } from "@/lib/extractTags";
 import { scoreGames } from "@/lib/scoreGames";
+import { extractTagsWithOpenAI } from "@/lib/extractTagsWithOpenAI";
+import { allowedTags } from "@/lib/allowedTags";
 import { RecommendApiResponse } from "@/app/types";
 
 export async function POST(req: NextRequest) {
@@ -36,10 +38,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Generate recommendations ──────────────────────────────────────────────
+  // ── Extract tags (AI → local fallback) ───────────────────────────────────
   try {
-    // Extract tags once; pass to scoreGames to avoid doing it twice.
-    const { tags: detectedTags } = extractTags(query);
+    // Step 1: try AI extraction (returns null if disabled, timed out, or failed)
+    const aiTags = await extractTagsWithOpenAI(query, allowedTags);
+
+    let detectedTags: string[];
+    if (aiTags !== null) {
+      // AI succeeded — use its tags directly
+      detectedTags = aiTags;
+      console.log(`[/api/recommend] extraction=openai tags=[${detectedTags.join(", ")}]`);
+    } else {
+      // AI unavailable or returned nothing — use the deterministic local extractor
+      const { tags } = extractTags(query);
+      detectedTags = tags;
+      console.log(`[/api/recommend] extraction=local tags=[${detectedTags.join(", ")}]`);
+    }
+
+    // Step 2: score and rank games (always deterministic, never AI)
     const recommendations = scoreGames(detectedTags);
 
     const response: RecommendApiResponse = {

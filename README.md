@@ -84,6 +84,8 @@ POST /api/recommend  { query }
 
 `lib/extractTags.ts` uses a local synonym dictionary (`data/tagDictionary.ts`) to map user words to normalized tag keys. Both the input and each synonym are lowercased, hyphen-normalized, and padded with spaces before a simple `String.includes()` check — giving whole-word matching without regex. Handles multi-word phrases like `"open world"`, `"co op"`, `"single player"` naturally.
 
+When `ENABLE_OPENAI_TAGS=true` is set, `lib/extractTagsWithOpenAI.ts` is tried first on the server. It sends the query (capped at 100 chars) to `gpt-4o-mini` with a strict JSON schema, asking for at most 5 tags from the controlled vocabulary. The model cannot invent new tags — its output is allowlist-filtered before use. If OpenAI is disabled, times out (4 s), or returns nothing useful, the route silently falls back to the local extractor. Scoring is always deterministic regardless of which extractor ran.
+
 ### Scoring formula
 
 ```
@@ -149,7 +151,13 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-No database, no API keys, and no external services are required to run the app as-is.
+No database is required. No API keys are required to run the app — AI tag extraction is disabled by default and the app works fully without it.
+
+To enable AI-assisted extraction locally, add these to `.env.local`:
+```
+ENABLE_OPENAI_TAGS=true
+OPENAI_API_KEY=sk-...
+```
 
 ---
 
@@ -180,7 +188,7 @@ Once an `OPENAI_API_KEY` is added (future step), add it as an environment variab
 
 | Idea | Details |
 |---|---|
-| **OpenAI-assisted extraction** | Replace keyword matching with an LLM call to extract intent and generate richer "why it matches" explanations |
+| **OpenAI-assisted extraction** | ✅ Implemented — set `ENABLE_OPENAI_TAGS=true` to activate structured tag extraction via `gpt-4o-mini` with deterministic fallback |
 | **Better ranking** | Add weighted tags (genre > mood > setting), or use cosine similarity on tag vectors |
 | **External game metadata** | Pull real game data from IGDB, RAWG, or a CMS instead of the local catalog |
 | **User preferences** | Save liked games to localStorage or a DB; use history to personalize scoring |

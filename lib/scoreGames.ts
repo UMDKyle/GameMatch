@@ -98,7 +98,7 @@ function scoreGame(
  */
 export function scoreGames(
   queryTags: string[],
-  maxResults = 5
+  maxResults = 50
 ): RecommendationResult[] {
   if (queryTags.length === 0) return [];
 
