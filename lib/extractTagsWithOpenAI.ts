@@ -8,7 +8,7 @@
  * extractor on any failure.
  *
  * ── Cost controls (read before changing anything) ─────────────────────────
- *  1. Disabled by default — only runs when ENABLE_OPENAI_TAGS=true.
+ *  1. Disabled when OPENAI_API_KEY is not set — no key, no cost.
  *  2. Input is hard-capped at MAX_QUERY_CHARS before being sent.
  *  3. Uses gpt-4o-mini — the cheapest model that supports structured outputs.
  *  4. max_tokens=80 — a JSON tags array never needs more than ~60 tokens.
@@ -37,10 +37,10 @@ const TIMEOUT_MS = 8_000;
 const MODEL = "gpt-4o-mini" as const;
 
 // ── Feature flag ──────────────────────────────────────────────────────────────
-// Both env vars must be present and correctly set for AI to activate.
-// This check runs at module load time so there's no per-request overhead.
+// AI extraction is enabled simply by setting OPENAI_API_KEY.
+// No separate toggle needed — if the key is absent, the extractor returns null
+// and the local fallback runs at zero cost.
 const AI_ENABLED =
-  process.env.ENABLE_OPENAI_TAGS === "true" &&
   typeof process.env.OPENAI_API_KEY === "string" &&
   process.env.OPENAI_API_KEY.length > 0;
 

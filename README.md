@@ -153,11 +153,11 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 No database is required. No API keys are required to run the app — AI tag extraction is disabled by default and the app works fully without it.
 
-To enable AI-assisted extraction locally, add these to `.env.local`:
+To enable AI-assisted extraction locally, add this to `.env.local`:
 ```
-ENABLE_OPENAI_TAGS=true
 OPENAI_API_KEY=sk-...
 ```
+On Vercel: **Settings → Environment Variables → Add `OPENAI_API_KEY`**. No other toggle needed.
 
 ---
 
