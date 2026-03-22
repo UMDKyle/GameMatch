@@ -6,7 +6,8 @@ A full-stack game recommendation demo app built with Next.js 14. Type a natural-
 
 ## Screenshot
 
-> _Add a screenshot here once deployed. Suggested tool: [Vercel](https://vercel.com) → share the preview URL → screenshot with a tool like [Screely](https://screely.com)._
+![gamematch](https://github.com/user-attachments/assets/932892bc-6ece-4493-bb9e-ec1777b9ed93)
+
 
 ---
 
